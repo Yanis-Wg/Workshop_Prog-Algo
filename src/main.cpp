@@ -88,20 +88,44 @@ void noise(sil::Image img){
 void rotation(sil::Image& img){
     // Création de l'image tournée
     sil::Image image_rotated(img.height(),img.width());
-    // Variable qui sera décrémenté, correspond au ligne du deuxieme tableau
-    int image_rotated_y=image_rotated.width()-1;
-    // Boucle pour parcourir le tableau
-    // Parcours colonne
-    for(int x{0}; x<img.height();x++){
-        // Parcours Ligne
-        for(int y{0};y<img.width();y++){
-            image_rotated.pixel(x,image_rotated_y)=img.pixel(y,x);
-            image_rotated_y-=1;
+    int y_old_img=0;
+    // les colonnes de la nouvelle image
+    for (int x{0}; x < img.height(); x++)
+    {
+        // les lignes de la nouvelle image
+        for (int y{0};y<img.width(); y++)
+        {
+            image_rotated.pixel(img.height() - 1 - x, y)=img.pixel(y_old_img,x);
+            y_old_img++;
         }
-        image_rotated_y= image_rotated.width()-1;
+        y_old_img=0;
     }
     image_rotated.save("output/rotated_img.png");
 }
+
+void rgb_split(sil::Image& img){
+    sil::Image image_rgb_split(img.width(),img.height());
+    // decalage / de combien on 'tire' les logo version rouge et bleu
+    int decalage{30};
+    for (int col{0};col<image_rgb_split.width();col++){
+        for(int line{0};line<image_rgb_split.height();line++){
+            // On se promene dans le tableau à deux dimensions
+            // Si le col-décalage est superieur ou égale à 0 alors on prend la valeur de rouge de col-decalage pour la "tirer" vers la droite
+            if(col-decalage>=0){
+                image_rgb_split.pixel(col, line).r = img.pixel(col - decalage, line).r;
+            }
+            // Si col+décalage est inférieur ou égale aux nombre max de col alors on prend la valeur de bleu à x+décalage et on la tire vers la gauche
+            if(col + decalage<=image_rgb_split.width()-1){
+                image_rgb_split.pixel(col,line).b=img.pixel(col+decalage, line).b;
+            }
+
+            // Comme sur l'image final le vers ne se déplace pas, on récupere le vert de chaque colonne et ligne sans avoir besoin de le "tirer"
+            image_rgb_split.pixel(col,line).g = img.pixel(col,line).g;
+        }
+    }
+    image_rgb_split.save("output/rgb_split.png");
+}
+
 
 int main()
 {
@@ -113,7 +137,9 @@ int main()
     // black_and_white_fade();
     // mirror(image);
     // noise(image);
-    rotation(image);
+    // rotation(image);
+    // rgb_split(image);
+    
     return 0;
 }
 
