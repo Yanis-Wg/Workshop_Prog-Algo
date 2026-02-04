@@ -1,5 +1,6 @@
 #include <sil/sil.hpp>
 #include <glm/glm.hpp>
+#include <glm/gtc/constants.hpp>
 #include "random.hpp"
 void only_green(sil::Image& img){
     for (glm::vec3& pixel : img.pixels())
@@ -74,7 +75,6 @@ void mirror(sil::Image& img){
 }
 
 void noise(sil::Image img){
-    int where = random_int(0, img.width()-1);
     for (int x{0}; x < img.width(); x++)
     {
         for (int y{0}; y < img.height(); y++)
@@ -126,10 +126,425 @@ void rgb_split(sil::Image& img){
     image_rgb_split.save("output/rgb_split.png");
 }
 
+void changeLighting(sil::Image img){
+    sil::Image img_light=img;
+    sil::Image img_dark=img;
+    float p_light{0.8};
+    float p_dark{1.2};
+    for (glm::vec3& color : img_light.pixels())
+    {
+        color.r = pow(color.r,p_light);
+        color.g = pow(color.g,p_light);
+        color.b = pow(color.b,p_light);
+    }
+    for (glm::vec3& color : img_dark.pixels())
+    {
+        color.r = pow(color.r,p_dark);
+        color.g = pow(color.g,p_dark);
+        color.b = pow(color.b,p_dark);
+    }
+    img_light.save("output/img_light.png");
+    img_dark.save("output/img_dark.png");
+}
+
+void draw_white_disc(){
+    sil::Image img{500,500};
+    int rayon{150};
+    // permet de center le cercle
+    int pos_x{250};
+    int pos_y{250};
+    for(int col{0}; col<500;col++)
+    {
+        for(int line{0};line<500;line++)
+        {
+            float distance = pow(col-pos_x,2)+pow(line-pos_y,2);
+            if (distance<=pow(rayon,2)){
+                img.pixel(col,line)=glm::vec3(1);
+            }
+        }
+    }
+    img.save("output/white_disc.png");
+}
+
+void draw_border_of_a_white_circle()
+{
+    sil::Image img{500,500};
+    int rayon{150};
+    // permet de center le cercle
+    int pos_x{250};
+    int pos_y{250};
+    for(int col{0}; col<500;col++)
+    {
+        for(int line{0};line<500;line++)
+        {
+            float distance = pow(col-pos_x,2)+pow(line-pos_y,2);
+            if (distance<=pow(rayon,2) && distance>=pow(rayon-10,2)){
+                img.pixel(col,line)=glm::vec3(1);
+            }
+        }
+    }
+    img.save("output/white_border_of_a_white_circle.png");
+}
+
+void draw_white_disc_for_gif()
+{
+    sil::Image img{500,500};
+    int rayon{150};
+    // permet de center le cercle
+    int pos_x{-50};
+    int pos_y{250};
+    int n_facteur{0};
+    for (int fps{0};fps<25;fps++)
+    {
+        for(int col{0}; col<500;col++)
+        {
+            for(int line{0};line<500;line++)
+            {
+                float distance = pow(col-pos_x,2)+pow(line-pos_y,2);
+                if (distance<=pow(rayon,2)){
+                    img.pixel(col,line)=glm::vec3(1);
+                }
+            }
+        }
+        pos_x+=700/24;
+        img.save("output/gif/white_disc_"+std::to_string(n_facteur)+".png");
+        n_facteur++;
+        for(int col{0}; col<500;col++)
+        {
+            for(int line{0};line<500;line++)
+            {
+                img.pixel(col,line)=glm::vec3(0);
+            }
+        }
+    }
+    
+}
+
+void draw_rosas(){
+    // nombre de tour
+    float pi=glm::pi<float>();
+    int rayon{100};
+    float angle=0.f;
+    sil::Image img{500,500};
+    // permet de center le cercle
+    int pos_x{250};
+    int pos_y{250};
+    // Le premier cercle
+    for(int col{0}; col<500;col++)
+    {
+        for(int line{0};line<500;line++)
+        {
+            float distance_centre = pow(col-pos_x,2)+pow(line-pos_y,2);
+            if (distance_centre<=pow(rayon,2) && distance_centre>=pow(rayon-5,2)){
+                img.pixel(col,line)=glm::vec3(1);
+            }
+        }
+    }
+    // Les autres cercles de la rosas
+    for (int i{0};i<7;i++)
+    {
+        for(int x{0}; x<500;x++)
+        {
+            for(int y{0};y<500;y++)
+            {
+                float distance = pow(x-(250+rayon*cos((i*pi)/3)),2)+pow(y-(250+rayon*sin((i*pi)/3)),2);
+                if (distance<=pow(rayon,2) && distance>=pow(rayon-5,2)){
+                    img.pixel(x,y)=glm::vec3(1);
+                }
+            }
+        }
+    }
+    
+    img.save("output/rosas.png");
+}
+
+void mosaic_fail(sil::Image& img){
+    sil::Image mosaic(img.width()*5,img.height()*5);
+    int col_img{0};
+    int line_img{0};
+    for(int col{0};col<mosaic.width();col++)
+    {
+        for(int line{0};line<mosaic.height();line++)
+        {
+            mosaic.pixel(col,line)=img.pixel(col_img,line_img);
+            line_img++;
+            if(line_img==img.height())
+            {
+                line_img=0;
+            }
+        }
+        col_img++;
+        if(col_img==img.width())
+        {
+            col_img=0;
+        }
+    }
+    mosaic.save("output/mosaic_fail.png");
+}
+
+void mosaic(sil::Image& img){
+    sil::Image mosaic(img.width()*5,img.height()*5);
+    int col_img{0};
+    int line_img{0};
+    for(int col{0};col<mosaic.width();col++)
+    {
+        line_img=0;
+        for(int line{0};line<mosaic.height();line++)
+        {
+            mosaic.pixel(col,line)=img.pixel(col_img,line_img);
+            line_img++;
+            if(line_img==img.height())
+            {
+                line_img=0;
+            }
+        }
+        col_img++;
+        if(col_img==img.width())
+        {
+            col_img=0;
+        }
+    }
+    mosaic.save("output/mosaic.png");
+}
+
+void mirror_mosaic_fail(sil::Image& img){
+    // image final
+    sil::Image mirror_mosaic(img.width()*5,img.height()*5);
+    // image miroir
+    int compteur=1;
+    sil::Image mirror_img=img;
+    for (int x{0}; x < img.width()/2; x++)
+    {
+        for (int y{0}; y < img.height(); y++)
+        {
+            img.pixel(x,y)=img.pixel(img.width()-compteur,y);
+            img.pixel(img.width()-compteur,y)=mirror_img.pixel(x,y);
+        }
+        compteur++;
+    }
+
+
+    int col_img{0};
+    int line_img{0};
+    
+    int reverse_counter{0};
+
+    for(int line{0};line<mirror_mosaic.height();line++)
+    {
+        line_img=0;
+        for(int col{0};col<mirror_mosaic.width();col++){
+            if(reverse_counter%2==0){
+                mirror_mosaic.pixel(col,line)=img.pixel(col_img,line_img);
+            }else{
+                mirror_mosaic.pixel(col,line)=mirror_img.pixel(col_img,line_img);
+            }
+            col_img++;
+            if(col_img==img.width())
+            {
+                col_img=0;
+                reverse_counter++;
+            }
+        }
+        line_img++;
+        if(line_img==img.height())
+        {
+            line_img=0;
+        }
+    }
+    mirror_mosaic.save("output/mirror_mosaic_fail.png");
+}
+
+
+void mirror_mosaic_fail_2(sil::Image& img){
+    // image final
+    sil::Image mirror_mosaic(img.width()*5,img.height()*5);
+    // image normal
+    sil::Image normal_img=img;
+    // image mirroir
+    sil::Image mirror_img=img;
+    int compteur=1;
+    for (int x{0}; x < img.width()/2; x++)
+    {
+        for (int y{0}; y < img.height(); y++)
+        {
+            img.pixel(x,y)=img.pixel(img.width()-compteur,y);
+            img.pixel(img.width()-compteur,y)=mirror_img.pixel(x,y);
+        }
+        compteur++;
+    }
+    // Mosaique
+    int col_img{0};
+    int line_img{0};
+    // Compteur pour savoir si on doit faire avec ou sans la mosaique miroir
+    int reverse_counter{0};
+
+    for(int line{0};line<mirror_mosaic.height();line++)
+    {
+        col_img=0;
+        for(int col{0};col<mirror_mosaic.width();col++){
+            if(reverse_counter%2==0){
+                mirror_mosaic.pixel(col,line)=img.pixel(col_img,line_img);
+            }else{
+                mirror_mosaic.pixel(col,line)=mirror_img.pixel(col_img,line_img);
+            }
+            col_img++;
+            if(col_img==img.width())
+            {
+                col_img=0;
+            }
+        }
+        line_img++;
+        reverse_counter++;
+        if(line_img==img.height())
+        {
+            line_img=0;
+        }
+    }
+    mirror_mosaic.save("output/mirror_mosaic_fail_2.png");
+}
+
+
+void mirror_mosaic_fail_3(sil::Image& img){
+    // image final
+    sil::Image mirror_mosaic(img.width()*5,img.height()*5);
+    // image normal
+    sil::Image normal_img=img;
+    // image mirroir
+    sil::Image mirror_img=img;
+    int compteur=1;
+    for (int x{0}; x < mirror_img.width()/2; x++)
+    {
+        for (int y{0}; y < mirror_img.height(); y++)
+        {
+            mirror_img.pixel(x,y)=mirror_img.pixel(mirror_img.width()-compteur,y);
+            mirror_img.pixel(mirror_img.width()-compteur,y)=mirror_img.pixel(x,y);
+        }
+        compteur++;
+    }
+    // Mosaique
+    int col_img{0};
+    int line_img{0};
+    // Compteur pour savoir si on doit faire avec ou sans la mosaique miroir
+    int reverse_counter{0};
+
+    for(int line{0};line<mirror_mosaic.height();line++)
+    {
+        col_img=0;
+        for(int col{0};col<mirror_mosaic.width();col++){
+            if(reverse_counter%2==0){
+                mirror_mosaic.pixel(col,line)=img.pixel(col_img,line_img);
+            }else{
+                mirror_mosaic.pixel(col,line)=mirror_img.pixel(col_img,line_img);
+            }
+            col_img++;
+            if(col_img==img.width())
+            {
+                col_img=0;
+                reverse_counter++;  
+            }
+        }
+        line_img++;
+        if(line_img==img.height())
+        {
+            line_img=0;
+        }
+    }
+    mirror_mosaic.save("output/mirror_mosaic_fail_3.png");
+}
+
+void mirror_mosaic(sil::Image& img){
+    // image final
+    sil::Image mirror_mosaic(img.width()*5,img.height()*5);
+    // image mirroir
+    sil::Image mirror_img=img;
+    sil::Image img_intermediare=img;
+    int compteur=1;
+    for (int x{0}; x < mirror_img.width()/2; x++)
+    {
+        for (int y{0}; y < mirror_img.height(); y++)
+        {
+            mirror_img.pixel(x,y)=mirror_img.pixel(mirror_img.width()-compteur,y);
+            mirror_img.pixel(mirror_img.width()-compteur,y)=img_intermediare.pixel(x,y);
+        }
+        compteur++;
+    }
+
+    // Mosaique
+    int line_img{0};
+    int col_img{0};
+
+    // Compteur pour savoir si on doit faire avec ou sans la mosaique miroir
+    int reverse_counter_line{0};
+    int reverse_counter_col{0};
+
+    for(reverse_counter_col=0;reverse_counter_col<5;reverse_counter_col++){
+        int offset_y = reverse_counter_col*img.height();
+        // ----------------------------------------------------- //
+        if(reverse_counter_col%2!=0)
+        {
+            line_img=0;
+            // ------------------------------------
+            for(int line{0};line<img.height();line++)
+            {
+                col_img=0;
+                reverse_counter_line=0;
+                for(int col{0};col<mirror_mosaic.width();col++){
+                    if(reverse_counter_line%2==0){
+                        mirror_mosaic.pixel(col,offset_y + line)=img.pixel(col_img,(img.height() - 1 - line_img));
+                    }else{
+                        mirror_mosaic.pixel(col,offset_y + line)=mirror_img.pixel(col_img,(img.height() - 1 - line_img));
+                    }
+                    col_img++;
+                    if(col_img==img.width())
+                    {
+                        col_img=0;
+                        reverse_counter_line++;  
+                    }
+                }
+                line_img++;
+            }
+        }else if(reverse_counter_col%2==0){
+            line_img=0;
+            for(int line{0};line<img.height();line++)
+            {
+                col_img=0;
+                reverse_counter_line=0;
+                for(int col{0};col<mirror_mosaic.width();col++){
+                    if(reverse_counter_line%2==0){
+                        mirror_mosaic.pixel(col,offset_y+line)=img.pixel(col_img,line_img);
+                    }else{
+                        mirror_mosaic.pixel(col,offset_y+line)=mirror_img.pixel(col_img,line_img);
+                    }
+                    col_img++;
+                    if(col_img==img.width())
+                    {
+                        col_img=0;
+                        reverse_counter_line++;  
+                    }
+                }
+                line_img++;
+            }
+        }
+        mirror_mosaic.save("output/mirror_mosaic.png");
+    }
+}
+
+void glitch(sil::Image& img){
+    for(int col{0}; col<500;col++)
+    {
+        for(int line{0};line<500;line++)
+        {
+            float distance_centre = pow(col-pos_x,2)+pow(line-pos_y,2);
+            if (distance_centre<=pow(rayon,2) && distance_centre>=pow(rayon-5,2)){
+                img.pixel(col,line)=glm::vec3(1);
+            }
+        }
+    }
+}
 
 int main()
 {
-    sil::Image image{"images/logo.png"};
+    // sil::Image image{"images/logo.png"};
     // only_green(image);
     // exchange_can(image);
     // black_and_white(image);
@@ -139,7 +554,15 @@ int main()
     // noise(image);
     // rotation(image);
     // rgb_split(image);
-    
+    // sil::Image image{"images/photo.jpg"};
+    // changeLighting(image);
+    // draw_white_disc();
+    // draw_border_of_a_white_circle();
+    // draw_white_disc_for_gif();
+    // draw_rosas();
+    sil::Image image{"images/logo.png"};
+    // mirror_mosaic(image);
+    glitch(image);
     return 0;
 }
 
