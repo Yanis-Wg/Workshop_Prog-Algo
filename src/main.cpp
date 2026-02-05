@@ -4,6 +4,7 @@
 #include "random.hpp"
 #include <algorithm>
 #include <complex>
+#include <glm/gtx/matrix_transform_2d.hpp>
 void only_green(sil::Image& img){
     for (glm::vec3& pixel : img.pixels())
     {
@@ -651,41 +652,194 @@ void fractal_mandelbrot()
     }
     img.save("output/mandelbrot.png");
 }
+// First part to do
+//Conversion sRGB vers Linéar
+float srgb_to_linear(float c)
+{
+    if (c <= 0.04045f)
+        return c / 12.92f;
+    else
+        return pow((c + 0.055f) / 1.055f, 2.4f);
+}
+
+// Conversion Linear to OKLAB
+glm::vec3 linear_srgb_to_oklab(glm::vec3 RGB)
+{
+    float l = 0.4122214708f * RGB.r + 0.5363325363f * RGB.g + 0.0514459929f * RGB.b;
+	float m = 0.2119034982f * RGB.r + 0.6806995451f * RGB.g + 0.1073969566f * RGB.b;
+	float s = 0.0883024619f * RGB.r + 0.2817188376f * RGB.g + 0.6299787005f * RGB.b;
+
+    float l_ = cbrtf(l);
+    float m_ = cbrtf(m);
+    float s_ = cbrtf(s);
+
+    return RGB=glm::vec3{
+        0.2104542553f*l_ + 0.7936177850f*m_ - 0.0040720468f*s_,
+        1.9779984951f*l_ - 2.4285922050f*m_ + 0.4505937099f*s_,
+        0.0259040371f*l_ + 0.7827717662f*m_ - 0.8086757660f*s_,
+    };
+}
+
+// Second part to do
+// Conversion OKLAB TO LINEAR
+glm::vec3 oklab_to_linear_srgb(glm::vec3 Lab) 
+{
+    float l_ = Lab.r + 0.3963377774f * Lab.g + 0.2158037573f * Lab.b;
+    float m_ = Lab.r - 0.1055613458f * Lab.g - 0.0638541728f * Lab.b;
+    float s_ = Lab.r - 0.0894841775f * Lab.g - 1.2914855480f * Lab.b;
+
+    float l = l_*l_*l_;
+    float m = m_*m_*m_;
+    float s = s_*s_*s_;
+
+    return Lab=glm::vec3{
+		+4.0767416621f * l - 3.3077115913f * m + 0.2309699292f * s,
+		-1.2684380046f * l + 2.6097574011f * m - 0.3413193965f * s,
+		-0.0041960863f * l - 0.7034186147f * m + 1.7076147010f * s,
+    };
+}
+
+//Retour Linéar vers sRGB
+float linear_to_srgb(float c)
+{
+    if (c <= 0.0031308f)
+        return 12.92f * c;
+    else
+        return 1.055f * pow(c, 1.0f / 2.4f) - 0.055f;
+}
 
 void fade_first_version(){
     sil::Image image{300/*width*/, 200/*height*/};
-    float fade=0.f;
-    for (int x{0}; x < image.width(); x++)
+    float ratio=0.f;
+    for (int col={0}; col < image.width(); col++)
     {
-        for (int y{0}; y < image.height(); y++)
+        for (int line{0}; line < image.height(); line++)
         {
-            if(x==0){
-                image.pixel(x,y).r=1;
-                image.pixel(x,y).g=0;
-                image.pixel(x,y).b=0;
-            }else if(x==299){
-                image.pixel(x,y).r=0;
-                image.pixel(x,y).g=1;
-                image.pixel(x,y).b=0;
-            }else if(image.pixel(x,y).r==1-fade>0.5){
-                image.pixel(x,y).r=1-fade;
-                image.pixel(x,y).g=0;
-                image.pixel(x,y).b=0;
+            glm::vec3 red{1.f,0,0};
+            glm::vec3 green{0,1.f,0};
+            image.pixel(col,line)=glm::mix(red, green, ratio);
+        }
+        ratio+=1.f/300.f;
+    }
+    image.save("output/fade_first_version.png");
+}
+
+void fade_upgraded_version(){
+    sil::Image image{300/*width*/, 200/*height*/};
+    float ratio=0.f;
+    glm::vec3 red{1.f,0,0};
+    glm::vec3 green{0,1.f,0};
+    glm::vec3 int_color;
+    red.r=srgb_to_linear(red.r);
+    red.g=srgb_to_linear(red.g);
+    red.b=srgb_to_linear(red.b);
+    red=linear_srgb_to_oklab(red);
+    green.r=srgb_to_linear(green.r);
+    green.g=srgb_to_linear(green.g);
+    green.b=srgb_to_linear(green.b);
+    green=linear_srgb_to_oklab(green);
+    for (int col={0}; col < image.width(); col++)
+    {
+        for (int line{0}; line < image.height(); line++)
+        {
+            int_color=glm::mix(red, green, ratio);
+            int_color=oklab_to_linear_srgb(int_color);
+            int_color.r=linear_to_srgb(int_color.r);
+            int_color.g=linear_to_srgb(int_color.g);
+            int_color.b=linear_to_srgb(int_color.b);
+            image.pixel(col,line)=int_color;
+        }
+        ratio+=1.f/300.f;
+    }
+    image.save("output/fade_upgraded_version.png");
+}
+
+void tramage(sil::Image& img){
+    const int bayer_n{4};
+    float bayer_matrix_4x4[][bayer_n] = {
+        {    -0.5,       0,  -0.375,   0.125 },
+        {    0.25,   -0.25,   0.375, - 0.125 },
+        { -0.3125,  0.1875, -0.4375,  0.0625 },
+        {  0.4375, -0.0625,  0.3125, -0.1875 },
+    };
+
+
+    for(int line{0};line<img.height();line++) 
+    {
+        for (int col{0}; col<img.width(); col++) {
+            float orig_color=img.pixel(line,col).r*0.3+img.pixel(line,col).g*0.59+img.pixel(line,col).b*0.11;
+            float bayer_value = bayer_matrix_4x4[line % bayer_n][col % bayer_n];
+            float output_color = orig_color + (bayer_value);
+            // Color screen blue to white
+            if (output_color < (1/2.f)){
+                img.pixel(line,col)=glm::vec3{0.f};
             }else{
-                image.pixel(x,y).r=0;
-                image.pixel(x,y).g=0+fade;
-                image.pixel(x,y).b=0; 
+                img.pixel(line,col) = glm::vec3{1.f};
             }
         }
-        fade+=1.f/300.f;
     }
-    image.save("output/fade_first_version_fail.png");
+    img.save("output/tramage.png");
+}
+
+void normalisation(sil::Image& img)
+{
+    float darker_pixel{1.f};
+    float brigther_pixel{0.f};
+    for(int col{0};col<img.width();col++)
+    {
+        for (int line{0};line<img.height();line++)
+        {
+            if((img.pixel(col,line).r+img.pixel(col,line).g+img.pixel(col,line).b)/3.0f<darker_pixel){
+                darker_pixel=(img.pixel(col,line).r+img.pixel(col,line).g+img.pixel(col,line).b)/3.0f;
+            }
+            if((img.pixel(col,line).r+img.pixel(col,line).g+img.pixel(col,line).b)/3.0f>brigther_pixel){
+                brigther_pixel=(img.pixel(col,line).r+img.pixel(col,line).g+img.pixel(col,line).b)/3.0f;
+            }
+        }
+        
+    }
+    for(int col{0};col<img.width();col++)
+    {
+        for (int line{0};line<img.height();line++)
+        {
+            img.pixel(col,line).r=(img.pixel(col,line).r-darker_pixel)/(brigther_pixel-darker_pixel);
+            img.pixel(col,line).g=(img.pixel(col,line).g-darker_pixel)/(brigther_pixel-darker_pixel);
+            img.pixel(col,line).b=(img.pixel(col,line).b-darker_pixel)/(brigther_pixel-darker_pixel);
+        }
+    }
+    img.save("output/normalisation.png");
+}
+
+glm::vec2 rotated(glm::vec2 point, glm::vec2 center_of_rotation, float angle)
+{
+    return glm::vec2{glm::rotate(glm::mat3{1.f}, angle) * glm::vec3{point - center_of_rotation, 0.f}} + center_of_rotation;
+}
+
+void vortex(sil::Image& img){
+    sil::Image vortex={img.width(),img.height()};
+    int angle=20;
+    float distance=0;
+    glm::vec2 center_of_rotation={img.width()/2,img.height()/2};
+    for(int col{0};col<img.width();col++)
+    {
+        for(int line{0};line<img.height();line++)
+        {
+            distance=glm::distance(glm::vec2(col,line), center_of_rotation);
+
+            glm::vec2 temp_stock=rotated(glm::vec2(col,line),center_of_rotation,angle*distance/85); 
+            if(temp_stock[0]<img.width()&&temp_stock[0]>0 && temp_stock[1]<img.height() && temp_stock[1]>0)
+            {
+                vortex.pixel(col,line)=img.pixel(temp_stock[0],temp_stock[1]);
+            }
+        }
+    }
+    vortex.save("output/vortex.png");
 }
 
 int main()
 {
-    // sil::Image image{"images/logo.png"};
-    // only_green(image);
+    sil::Image image{"images/logo.png"};
+    // only_green(image);;
     // exchange_can(image);
     // black_and_white(image);
     // negative_color(image);
@@ -694,7 +848,7 @@ int main()
     // noise(image);
     // rotation(image);
     // rgb_split(image);
-    // sil::Image image{"images/photo.jpg"};
+    // sil::Image image{"images/photo_faible_contraste.jpg"};
     // changeLighting(image);
     // draw_white_disc();
     // draw_border_of_a_white_circle();
@@ -705,7 +859,11 @@ int main()
     // glitch(image);
     // sort_by_brightness(image);
     // fractal_mandelbrot();
-    fade_first_version();
+    // fade_first_version();
+    // fade_upgraded_version();
+    // tramage(image);
+    // normalisation(image);
+    vortex(image);
     return 0;
 }
 
