@@ -2,6 +2,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 #include "random.hpp"
+#include <algorithm>
+#include <complex>
 void only_green(sil::Image& img){
     for (glm::vec3& pixel : img.pixels())
     {
@@ -530,16 +532,154 @@ void mirror_mosaic(sil::Image& img){
 }
 
 void glitch(sil::Image& img){
-    for(int col{0}; col<500;col++)
+    sil::Image tab_stockage(img.width(),img.height());
+    int how_much_glitch=random_int(15,60);
+    for(int i{0}; i<how_much_glitch;i++)
     {
-        for(int line{0};line<500;line++)
+        // random x & y sur lesquelles on va se placer
+        int r_x=random_int(0,img.width()-1);
+        int r_y=random_int(0,img.height()-1);
+        
+        // combien de long on va prendre
+        int how_much_x=random_int(0,img.width()-1-r_x);
+
+        // combien de haut on va prendre
+        int how_much_y=random_int(0,img.height()-1-r_y);
+
+
+        int d_r_x=random_int(0,img.width()-1);
+        while((d_r_x+how_much_x-1)>img.width())
         {
-            float distance_centre = pow(col-pos_x,2)+pow(line-pos_y,2);
-            if (distance_centre<=pow(rayon,2) && distance_centre>=pow(rayon-5,2)){
-                img.pixel(col,line)=glm::vec3(1);
+            d_r_x=random_int(0,img.width()-1); 
+        }
+
+        int d_r_y=random_int(0,img.height()-1);
+        while((d_r_y+how_much_y-1)>img.height())
+        {
+            d_r_y=random_int(0,img.height()-1); 
+        }
+
+        for(int x{0};x<how_much_x;x++)
+        {
+            for(int y{0};y<how_much_y;y++)
+            {
+                tab_stockage.pixel(r_x+x,r_y+y)=img.pixel(r_x+x,r_y+y);
+                img.pixel(r_x+x,r_y+y)=img.pixel(x+d_r_x,y+d_r_y);
+                img.pixel(x+d_r_x,y+d_r_y)=tab_stockage.pixel(r_x+x,r_y+y);
             }
         }
     }
+    img.save("output/glitch.png");
+}
+
+float brightness(glm::vec3 const& a){
+    return (a.r + a.g + a.b) / 3.0f;
+}
+
+void sort_by_brightness_full_picture(sil::Image& img){
+    std::sort(img.pixels().begin(), img.pixels().end(), [](glm::vec3 a, glm::vec3 b) {
+        return brightness(a)<brightness(b);
+    });
+    img.save("output/sort_by_brightness_full_picture.png");
+}
+
+void sort_by_brightness(sil::Image& img){
+    sil::Image tab_stockage(img.width(),img.height());
+    int how_much_glitch=random_int(15,60);
+    for(int i{0}; i<how_much_glitch;i++)
+    {
+        // random x & y sur lesquelles on va se placer
+        int r_x=random_int(0,img.width()-1);
+        int r_y=random_int(0,img.height()-1);
+        
+        // combien de long on va prendre
+        int how_much_x=random_int(0,img.width()-1-r_x);
+
+        // combien de haut on va prendre
+        int how_much_y=1;   
+        std::vector<glm::vec3>tmp_vec;
+
+        for(int x{0};x<how_much_x;x++)
+        {
+            for(int y{0};y<how_much_y;y++)
+            {
+                tmp_vec.push_back(img.pixel(r_x+x,r_y+y));
+            }
+        }
+        std::sort(tmp_vec.begin(), tmp_vec.end(), [](glm::vec3 a, glm::vec3 b) {
+            return brightness(a)<brightness(b);
+        });
+        // on replace les éléments dans leur emplacement apres avoir trier dans le tab temp
+        int index = 0;
+        for(int x{0};x<how_much_x;x++)
+        {
+            for(int y{0};y<how_much_y;y++)
+            {
+                img.pixel(r_x+x,r_y+y)=tmp_vec[index];
+                index++;
+            }
+        }
+    }
+    img.save("output/sort_by_brightness.png");
+}
+
+void fractal_mandelbrot()
+{
+    sil::Image img{500,500};
+   
+    for(int col{0};col<img.width();col++)
+    {
+        for(int line{0};line<img.height();line++)
+        {
+            std::complex<float> c{col*(4.f/500.f)-2.f,line*(4.f/500.f)-2.f};
+            std::complex<float> z=0.f;
+            int j=0;
+            while(j<20){
+                z = z * z + c;
+                if(std::abs(z) > 2){
+                    break;
+                }
+                j++;
+            }
+            if(j==20){
+                img.pixel(col,line)=glm::vec3(1);
+            }else{
+                img.pixel(col,line)=glm::vec3(0);
+            }
+
+        }
+    }
+    img.save("output/mandelbrot.png");
+}
+
+void fade_first_version(){
+    sil::Image image{300/*width*/, 200/*height*/};
+    float fade=0.f;
+    for (int x{0}; x < image.width(); x++)
+    {
+        for (int y{0}; y < image.height(); y++)
+        {
+            if(x==0){
+                image.pixel(x,y).r=1;
+                image.pixel(x,y).g=0;
+                image.pixel(x,y).b=0;
+            }else if(x==299){
+                image.pixel(x,y).r=0;
+                image.pixel(x,y).g=1;
+                image.pixel(x,y).b=0;
+            }else if(image.pixel(x,y).r==1-fade>0.5){
+                image.pixel(x,y).r=1-fade;
+                image.pixel(x,y).g=0;
+                image.pixel(x,y).b=0;
+            }else{
+                image.pixel(x,y).r=0;
+                image.pixel(x,y).g=0+fade;
+                image.pixel(x,y).b=0; 
+            }
+        }
+        fade+=1.f/300.f;
+    }
+    image.save("output/fade_first_version_fail.png");
 }
 
 int main()
@@ -560,9 +700,12 @@ int main()
     // draw_border_of_a_white_circle();
     // draw_white_disc_for_gif();
     // draw_rosas();
-    sil::Image image{"images/logo.png"};
+    // sil::Image image{"images/logo.png"};
     // mirror_mosaic(image);
-    glitch(image);
+    // glitch(image);
+    // sort_by_brightness(image);
+    // fractal_mandelbrot();
+    fade_first_version();
     return 0;
 }
 
