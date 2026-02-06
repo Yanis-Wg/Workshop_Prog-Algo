@@ -224,7 +224,6 @@ void draw_white_disc_for_gif()
 }
 
 void draw_rosas(){
-    // nombre de tour
     float pi=glm::pi<float>();
     int rayon{100};
     float angle=0.f;
@@ -844,7 +843,7 @@ int main()
     // black_and_white(image);
     // negative_color(image);
     // black_and_white_fade();
-    // mirror(image);
+    mirror(image);
     // noise(image);
     // rotation(image);
     // rgb_split(image);
@@ -863,7 +862,7 @@ int main()
     // fade_upgraded_version();
     // tramage(image);
     // normalisation(image);
-    vortex(image);
+    // vortex(image);
     return 0;
 }
 
