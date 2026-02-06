@@ -183,7 +183,7 @@
 
 ### Analyse
 * **Spécificités de l'algo :** * On place le premier cercle au centre à partir du code précédent et ensuite à partir de relation mathématique pour passer de coordonnées cartésiennes à polaire, on place les autres cercles tant qu'il n'y pas eu 7 cercles tracés.
-* La version raté ne ressemblait pas à une fleur, j'avais obtenu ce résultat en dupliquant mal un code à l'écrit, et comme je trouvais que ca ressemblait à une fleur, j'ai fini la fleur.
+* La version raté ne ressemblait pas autant à une fleur, j'avais obtenu ce résultat en dupliquant mal une partie de mon code à l'écrit, et comme je trouvais que ca ressemblait à une fleur, j'ai fini la fleur.
 
 ---
 
